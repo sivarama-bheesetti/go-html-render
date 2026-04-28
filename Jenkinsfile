@@ -6,8 +6,6 @@ pipeline {
     }
 
     environment {
-        COMMIT = "${env.GIT_COMMIT}"
-        BRANCH = "${env.GIT_BRANCH}"
         GOTMPDIR = "${env.JENKINS_HOME}/go-cache"
     }
 
@@ -15,16 +13,9 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                checkout scm
-            }
-        }
-
-        stage('Prepare') {
-            steps {
-                sh '''
-                    mkdir -p "$GOTMPDIR"
-                    go version
-                '''
+                git branch: 'main',
+                    url: 'https://github.com/USERNAME/go-html-render.git',
+                    credentialsId: 'github-pat'
             }
         }
 
@@ -32,17 +23,8 @@ pipeline {
             steps {
                 dir('src') {
                     sh '''
+                        mkdir -p "$GOTMPDIR"
                         go build -o generator main.go
-                    '''
-                }
-            }
-        }
-
-        stage('Test') {
-            steps {
-                dir('src') {
-                    sh '''
-                        go fmt *.go
                     '''
                 }
             }
@@ -51,9 +33,7 @@ pipeline {
         stage('Generate HTML') {
             steps {
                 dir('src') {
-                    sh '''
-                        ./generator
-                    '''
+                    sh './generator'
                 }
             }
         }
@@ -64,16 +44,8 @@ pipeline {
             publishHTML([
                 reportDir: 'src',
                 reportFiles: 'index.html',
-                reportName: 'Dynamic HTML Generator',
-                allowMissing: false,
-                alwaysLinkToLastBuild: false,
-                keepAll: false
+                reportName: 'Dynamic HTML Generator'
             ])
-        }
-
-        failure {
-            echo 'Build failed!'
         }
     }
 }
-
